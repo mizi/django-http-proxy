@@ -155,22 +155,28 @@ class HttpProxy(View):
         request_url += '?%s' % param_str if param_str else ''
         return request_url
 
-    def create_request(self, url, body=None, headers={}):
+    def create_request(self, url, body=None, headers=None):
+        if headers is None:
+            headers = {}
         request = urllib.request.Request(url, body, headers)
         logger.info('%s %s' % (request.get_method(), request.get_full_url()))
         return request
 
-    def get_response(self, body=None, headers={}):
+    def get_response(self, body=None, headers=None):
+        if headers is None:
+            headers = {}
         request_url = self.get_full_url(self.url)
         request = self.create_request(request_url, body=body, headers=headers)
-        response = urllib.request.urlopen(request)
         try:
+            response = urllib.request.urlopen(request)
             response_body = response.read()
             status = response.getcode()
+            content_type = response.headers['content-type']
             logger.debug(self._msg % response_body)
         except urllib.error.HTTPError as e:
             response_body = e.read()
             logger.error(self._msg % response_body)
             status = e.code
+            content_type = e.headers['content-type']
         return HttpResponse(response_body, status=status,
-                            content_type=response.headers['content-type'])
+                            content_type=content_type)
